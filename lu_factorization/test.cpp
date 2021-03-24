@@ -4,7 +4,7 @@
 #include <assert.h>
 
 #include <cuda_runtime.h>
-#include <cusparse_v2.h>
+#include <cusparse.h>
 
 cusparseHandle_t    handle; 
 
@@ -142,7 +142,7 @@ int main()
     setUpDescriptor(descrA, CUSPARSE_MATRIX_TYPE_GENERAL, CUSPARSE_INDEX_BASE_ONE);
 
     int nnz = 0;                                // --- Number of nonzero elements in dense matrix
-    const int lda = Nrows;                      // --- Leading dimension of dense matrix
+    const int lda = Nrows;                      // --- Leading dimension of dense matrix, lda=Nrows for column major ordering, lda=Ncols for row major ordering
     
     // --- Device side number of nonzero elements per row
     int *d_nnzPerVector;     
@@ -155,9 +155,8 @@ int main()
     int *h_nnzPerVector = (int *)malloc(Nrows * sizeof(*h_nnzPerVector));
     cudaMemcpy(h_nnzPerVector, d_nnzPerVector, Nrows * sizeof(*h_nnzPerVector), cudaMemcpyDeviceToHost);
 
-    printf("Number of nonzero elements in dense matrix = %i\n\n", nnz);
+    printf("\nNumber of nonzero elements in dense matrix = %i\n\n", nnz);
     for (int i = 0; i < Nrows; ++i) printf("Number of nonzero elements in row %i = %i \n", i, h_nnzPerVector[i]);
-    printf("\n");
 
     // --- Device side sparse matrix
     double *d_A;             cudaMalloc(&d_A, nnz * sizeof(*d_A));
@@ -176,12 +175,12 @@ int main()
     cudaMemcpy(h_A_ColIndices, d_A_ColIndices, nnz * sizeof(*h_A_ColIndices), cudaMemcpyDeviceToHost);
 
     printf("\nOriginal matrix in CSR format\n\n");
-    for (int i = 0; i < nnz; ++i) printf("A[%i] = %.0f ", i, h_A[i]); printf("\n");
+    for (int i = 0; i < nnz; ++i) printf("A[%i] = %.4f ", i, h_A[i]); printf("\n");
 
     printf("\n");
-    for (int i = 0; i < (Nrows + 1); ++i) printf("h_A_RowIndices[%i] = %i \n", i, h_A_RowIndices[i]); printf("\n");
+    // for (int i = 0; i < (Nrows + 1); ++i) printf("h_A_RowIndices[%i] = %i \n", i, h_A_RowIndices[i]); printf("\n");
 
-    for (int i = 0; i < nnz; ++i) printf("h_A_ColIndices[%i] = %i \n", i, h_A_ColIndices[i]);
+    // for (int i = 0; i < nnz; ++i) printf("h_A_ColIndices[%i] = %i \n", i, h_A_ColIndices[i]);
 
 
     /******************************************/
@@ -229,7 +228,9 @@ int main()
     /* MOVE THE RESULTS TO THE HOST */
     /********************************/
     double *h_y = (double *)malloc(Ncols * sizeof(double));
-    cudaMemcpy(h_x, d_y, N * sizeof(double), cudaMemcpyDeviceToHost);
-    printf("\n\nFinal result\n");
+    cudaMemcpy(h_y, d_y, N * sizeof(double), cudaMemcpyDeviceToHost);
+    printf("\nFinal result\n");
+    for (int k = 0; k<N; k++) printf("y[%i] = %f\n", k, h_y[k]);
+    printf("\nCo-efficient matrix: \n");
     for (int k = 0; k<N; k++) printf("x[%i] = %f\n", k, h_x[k]);
 }

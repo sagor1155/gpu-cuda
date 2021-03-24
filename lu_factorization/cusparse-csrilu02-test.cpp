@@ -102,10 +102,9 @@ int main(int argc, char*argv[])
     cusparseCreateCsrsv2Info(&info_U);
 
     // step 3: query how much memory used in csrilu02 and csrsv2, and allocate the buffer
-    cusparseDcsrilu02_bufferSize(handle, m, nnz,        descr_M, d_csrVal, d_csrRowPtr, d_csrColInd, info_M, &pBufferSize_M);
-    cusparseDcsrsv2_bufferSize(handle, trans_L, m, nnz,        descr_L, d_csrVal, d_csrRowPtr, d_csrColInd, info_L, &pBufferSize_L);
-    cusparseDcsrsv2_bufferSize(handle, trans_U, m, nnz,        descr_U, d_csrVal, d_csrRowPtr, d_csrColInd, info_U, &pBufferSize_U);
-
+    cusparseDcsrilu02_bufferSize(handle, m, nnz, descr_M, d_csrVal, d_csrRowPtr, d_csrColInd, info_M, &pBufferSize_M);
+    cusparseDcsrsv2_bufferSize(handle, trans_L, m, nnz, descr_L, d_csrVal, d_csrRowPtr, d_csrColInd, info_L, &pBufferSize_L);
+    cusparseDcsrsv2_bufferSize(handle, trans_U, m, nnz, descr_U, d_csrVal, d_csrRowPtr, d_csrColInd, info_U, &pBufferSize_U);
 
     printf("pBufferSize_M: %d\n", pBufferSize_M);
     printf("pBufferSize_L: %d\n", pBufferSize_L);
@@ -122,46 +121,33 @@ int main(int argc, char*argv[])
     // The lower(upper) triangular part of M has the same sparsity pattern as L(U),
     // we can do analysis of csrilu0 and csrsv2 simultaneously.
 
-    cusparseDcsrilu02_analysis(handle, m, nnz, descr_M,
-        d_csrVal, d_csrRowPtr, d_csrColInd, info_M,
-        policy_M, pBuffer);
+    cusparseDcsrilu02_analysis(handle, m, nnz, descr_M, d_csrVal, d_csrRowPtr, d_csrColInd, info_M, policy_M, pBuffer);
     status = cusparseXcsrilu02_zeroPivot(handle, info_M, &structural_zero);
     if (CUSPARSE_STATUS_ZERO_PIVOT == status){
-    printf("A(%d,%d) is missing\n", structural_zero, structural_zero);
+        printf("A(%d,%d) is missing\n", structural_zero, structural_zero);
     }
     printf ("This is line %d of file \"%s\".\n", __LINE__, __FILE__);
 
-    cusparseDcsrsv2_analysis(handle, trans_L, m, nnz, descr_L,
-        d_csrVal, d_csrRowPtr, d_csrColInd,
-        info_L, policy_L, pBuffer);
-    
+    cusparseDcsrsv2_analysis(handle, trans_L, m, nnz, descr_L, d_csrVal, d_csrRowPtr, d_csrColInd, info_L, policy_L, pBuffer);
     printf ("This is line %d of file \"%s\".\n", __LINE__, __FILE__);
 
-    cusparseDcsrsv2_analysis(handle, trans_U, m, nnz, descr_U,
-        d_csrVal, d_csrRowPtr, d_csrColInd,
-        info_U, policy_U, pBuffer);
+    cusparseDcsrsv2_analysis(handle, trans_U, m, nnz, descr_U, d_csrVal, d_csrRowPtr, d_csrColInd, info_U, policy_U, pBuffer);
     printf ("This is line %d of file \"%s\".\n", __LINE__, __FILE__);
-	fflush(stdout);
     
     // step 5: M = L * U
-    cusparseDcsrilu02(handle, m, nnz, descr_M,
-        d_csrVal, d_csrRowPtr, d_csrColInd, info_M, policy_M, pBuffer);
+    cusparseDcsrilu02(handle, m, nnz, descr_M, d_csrVal, d_csrRowPtr, d_csrColInd, info_M, policy_M, pBuffer);
     status = cusparseXcsrilu02_zeroPivot(handle, info_M, &numerical_zero);
     if (CUSPARSE_STATUS_ZERO_PIVOT == status){
-    printf("U(%d,%d) is zero\n", numerical_zero, numerical_zero);
-	fflush(stdout);
-}
+        printf("U(%d,%d) is zero\n", numerical_zero, numerical_zero);
+    }
     printf ("This is line %d of file \"%s\".\n", __LINE__, __FILE__);
 
     // step 6: solve L*z = x
-    cusparseDcsrsv2_solve(handle, trans_L, m, nnz, &alpha, descr_L,
-    d_csrVal, d_csrRowPtr, d_csrColInd, info_L, d_x, d_z, policy_L, pBuffer);
+    cusparseDcsrsv2_solve(handle, trans_L, m, nnz, &alpha, descr_L, d_csrVal, d_csrRowPtr, d_csrColInd, info_L, d_x, d_z, policy_L, pBuffer);
     printf ("This is line %d of file \"%s\".\n", __LINE__, __FILE__);
 
     // step 7: solve U*y = z
-    cusparseDcsrsv2_solve(handle, trans_U, m, nnz, &alpha, descr_U,
-    d_csrVal, d_csrRowPtr, d_csrColInd, info_U, d_z, d_y, policy_U, pBuffer);
-
+    cusparseDcsrsv2_solve(handle, trans_U, m, nnz, &alpha, descr_U, d_csrVal, d_csrRowPtr, d_csrColInd, info_U, d_z, d_y, policy_U, pBuffer);
     printf ("This is line %d of file \"%s\".\n", __LINE__, __FILE__);
 
     // step 8: free resources
